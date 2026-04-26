@@ -36,6 +36,7 @@ jobs:
           GH_REPO:           ${{ github.repository }}
           GH_RUN_URL:        ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           BUDGET_USD_CAP:    "3.00"
+          OPENAI_TPM:        ${{ vars.OPENAI_TPM || '40000' }}
         run: uv run python -m ai_research_agent.main
 
       - name: Commit and push new papers
