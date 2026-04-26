@@ -1,0 +1,61 @@
+name: Weekly arXiv Digest
+
+on:
+  schedule:
+    - cron: "0 8 * * 0"        # Sunday 08:00 UTC (10:00 CEST / 09:00 CET)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: weekly-digest
+  cancel-in-progress: false
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Run weekly digest
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY:    ${{ secrets.OPENAI_API_KEY }}
+          GH_TOKEN:          ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO:           ${{ github.repository }}
+          GH_RUN_URL:        ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          BUDGET_USD_CAP:    "3.00"
+        run: uv run python -m ai_research_agent.main
+
+      - name: Commit and push new papers
+        if: always()
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [[ -n "$(git status --porcelain papers/)" ]]; then
+            git add papers/
+            git commit -m "weekly digest: $(date -u +%Y-%m-%d)"
+            git push
+          else
+            echo "No new papers this week."
+          fi
+
+      - name: Last-resort failure issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create \
+            --title "Weekly digest hard-crashed: $(date -u +%Y-%m-%d)" \
+            --body  "Run did not complete cleanly. See $GH_RUN_URL"
