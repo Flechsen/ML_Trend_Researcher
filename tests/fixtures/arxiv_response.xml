@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <opensearch:totalResults xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/">3</opensearch:totalResults>
+  <opensearch:startIndex xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/">0</opensearch:startIndex>
+  <entry>
+    <id>http://arxiv.org/abs/2404.12345v2</id>
+    <updated>2026-04-22T10:00:00Z</updated>
+    <published>2026-04-20T08:00:00Z</published>
+    <title>ReAct Tool Use for LLM Agents</title>
+    <summary>We propose a tool-using agent. Code at github.com/foo/bar.</summary>
+    <author><name>Alice Smith</name></author>
+    <author><name>Bob Jones</name></author>
+    <link href="http://arxiv.org/abs/2404.12345v2" rel="alternate" type="text/html"/>
+    <link title="pdf" href="http://arxiv.org/pdf/2404.12345v2" rel="related" type="application/pdf"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.CL" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2404.12399v1</id>
+    <updated>2026-04-21T10:00:00Z</updated>
+    <published>2026-04-21T10:00:00Z</published>
+    <title>Speculative Decoding Survey</title>
+    <summary>Survey of speculative decoding methods.</summary>
+    <author><name>Carol Davis</name></author>
+    <link href="http://arxiv.org/abs/2404.12399v1" rel="alternate" type="text/html"/>
+    <link title="pdf" href="http://arxiv.org/pdf/2404.12399v1" rel="related" type="application/pdf"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2404.12500v1</id>
+    <updated>2026-04-22T10:00:00Z</updated>
+    <published>2026-04-22T10:00:00Z</published>
+    <title>Hybrid RAG with Rerank</title>
+    <summary>RAG plus reranker. Repo: huggingface.co/foo/bar.</summary>
+    <author><name>Dan Eve</name></author>
+    <link href="http://arxiv.org/abs/2404.12500v1" rel="alternate" type="text/html"/>
+    <link title="pdf" href="http://arxiv.org/pdf/2404.12500v1" rel="related" type="application/pdf"/>
+    <category term="cs.CL" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+</feed>
