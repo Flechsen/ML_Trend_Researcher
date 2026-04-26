@@ -1,0 +1,68 @@
+interests:
+  - topic: LLM agents
+    description: |
+      Autonomous LLM-driven agents that plan, use tools, and execute
+      multi-step tasks. ReAct-style reasoning, tool-calling, agentic workflows.
+    examples:
+      - tool-using agents
+      - planning loops
+      - multi-agent collaboration
+    anti_examples:
+      - reinforcement-learning agents in games
+      - robotics control
+
+  - topic: Model Context Protocol (MCP)
+    description: |
+      The Model Context Protocol and surrounding ecosystem — server
+      implementations, client integrations, tool/resource exposure to LLMs,
+      and patterns for connecting models to external systems. Includes
+      papers on standardized agent-tool interfaces, structured tool calling,
+      and protocol design for LLM integration.
+    examples:
+      - MCP server design
+      - tool exposure patterns
+      - structured tool-calling protocols
+      - LLM integration standards
+    anti_examples:
+      - generic API design unrelated to LLMs
+      - ad-hoc plugin systems without protocol contribution
+
+  - topic: RAG and retrieval
+    description: |
+      Retrieval-augmented generation, hybrid search, query rewriting,
+      and grounding LLM outputs in external knowledge.
+    examples: [chunking strategies, reranking, hybrid search]
+    anti_examples: [generic IR theory without LLM context]
+
+  - topic: inference efficiency
+    description: |
+      Practical techniques to make LLM inference faster, cheaper,
+      or more memory-efficient at deployment time.
+    examples: [speculative decoding, KV cache, quantization for inference]
+    anti_examples: [training-time-only optimizations]
+
+  - topic: fine-tuning
+    description: |
+      Practical methods to adapt pretrained LLMs to specific tasks, domains,
+      or behaviors. Parameter-efficient fine-tuning (LoRA/QLoRA/adapters),
+      instruction tuning, preference optimization (DPO/ORPO/KTO), and
+      domain adaptation. Emphasis on recipes a single developer can run.
+    examples:
+      - LoRA / QLoRA recipes
+      - DPO and preference optimization
+      - instruction tuning on small models
+      - domain-specific adapters
+    anti_examples:
+      - trillion-parameter pretraining from scratch
+      - papers requiring 100+ GPUs to reproduce
+      - pretraining data curation only
+
+mvp_constraints:
+  hard_drops:
+    - dataset_paper_only
+    - pure_theory
+    - frontier_model_only
+  preferred_signals:
+    - small_compute_footprint
+    - small_model_size
+    - reproducible_pipeline
