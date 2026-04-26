@@ -107,7 +107,8 @@ def test_score_by_embedding_batches_large_input():
     fake_client = MagicMock()
     fake_client.embeddings.create.side_effect = [interest_resp, batch1, batch2]
 
-    with patch("ai_research_agent.prefilter._client", return_value=fake_client):
+    with patch("ai_research_agent.prefilter._client", return_value=fake_client), \
+         patch("ai_research_agent.prefilter.time.sleep"):
         result = score_by_embedding(papers, interests, top_n=10, budget=None)
 
     assert fake_client.embeddings.create.call_count == 3  # interests + 2 paper batches

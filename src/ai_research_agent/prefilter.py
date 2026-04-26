@@ -1,4 +1,7 @@
+import logging
 import math
+import os
+import time
 from functools import lru_cache
 from typing import Any
 
@@ -9,19 +12,26 @@ from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_ex
 from ai_research_agent.budget import Budget
 from ai_research_agent.models import Paper, ScoredPaper
 
+logger = logging.getLogger(__name__)
+
 EMBED_MODEL = "text-embedding-3-small"
-# OpenAI free tier caps embeddings at 40k tokens-per-minute. Stay under that
-# per request (so a single batch never trips the limit) and let tenacity
-# absorb the cooldown between batches if we still hit the rolling window.
-EMBED_MAX_TOKENS_PER_INPUT = 400
-EMBED_MAX_TOKENS_PER_BATCH = 30_000
+# OpenAI free tier caps embeddings at 40k tokens/min. tiktoken (cl100k) under-
+# counts vs the embedding endpoint by ~40%, so target 18k to land near 25k
+# actual; combined with proportional throttle below, that keeps the rolling
+# minute under the cap. If you upgrade OpenAI to a paid tier (Tier 1: 1M
+# TPM after $5 deposit), set OPENAI_TPM=1000000 and the run completes in one
+# or two batches with no waits.
+EMBED_MAX_TOKENS_PER_INPUT = 250
+EMBED_MAX_TOKENS_PER_BATCH = 18_000
+OPENAI_TPM_LIMIT = int(os.environ.get("OPENAI_TPM", "40000"))
 
 _ENCODING = tiktoken.get_encoding("cl100k_base")
 
 
 @lru_cache(maxsize=1)
 def _client() -> OpenAI:
-    return OpenAI()
+    # Disable the SDK's built-in retries; tenacity handles them with longer waits.
+    return OpenAI(max_retries=0)
 
 
 def _cosine(a: list[float], b: list[float]) -> float:
@@ -70,14 +80,22 @@ def _build_token_batches(texts: list[str]) -> list[list[str]]:
 @retry(
     retry=retry_if_exception_type(RateLimitError),
     stop=stop_after_attempt(6),
-    wait=wait_exponential(multiplier=1, min=20, max=90),
+    wait=wait_exponential(multiplier=1, min=30, max=120),
     reraise=True,
 )
-def _embed_batch(inputs: list[str], budget: Budget | None) -> list[list[float]]:
+def _embed_batch(inputs: list[str], budget: Budget | None) -> tuple[list[list[float]], int]:
     resp = _client().embeddings.create(model=EMBED_MODEL, input=inputs)
     if budget is not None:
         budget.charge("prefilter", EMBED_MODEL, in_tok=resp.usage.prompt_tokens, out_tok=0)
-    return [item.embedding for item in resp.data]
+    return [item.embedding for item in resp.data], resp.usage.prompt_tokens
+
+
+def _throttle_for_tpm(tokens_used: int) -> None:
+    """Sleep long enough that the rolling-minute average stays under the TPM cap."""
+    seconds = 60.0 * tokens_used / OPENAI_TPM_LIMIT * 1.2  # 20% safety margin
+    if seconds > 0.5:
+        logger.info("prefilter: sleeping %.1fs to respect %d TPM", seconds, OPENAI_TPM_LIMIT)
+        time.sleep(seconds)
 
 
 def score_by_embedding(
@@ -91,12 +109,17 @@ def score_by_embedding(
         return []
 
     interest_text = _interests_to_embedding_text(interests)
-    interest_vec = _embed_batch([interest_text], budget)[0]
+    interest_vecs, _ = _embed_batch([interest_text], budget)
+    interest_vec = interest_vecs[0]
 
     abstracts = [p.abstract for p in papers]
+    batches = _build_token_batches(abstracts)
     paper_vecs: list[list[float]] = []
-    for batch in _build_token_batches(abstracts):
-        paper_vecs.extend(_embed_batch(batch, budget))
+    for i, batch in enumerate(batches):
+        vecs, used = _embed_batch(batch, budget)
+        paper_vecs.extend(vecs)
+        if i < len(batches) - 1:  # no need to throttle after the last batch
+            _throttle_for_tpm(used)
 
     scored = [
         ScoredPaper(paper=paper, embedding_score=_cosine(interest_vec, vec))
