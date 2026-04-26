@@ -1,0 +1,5 @@
+[
+  {"arxiv_id": "2404.12345", "score": 9, "reasoning": "Strong agents paper, repo released."},
+  {"arxiv_id": "2404.12500", "score": 7, "reasoning": "RAG fit; HF model card present."},
+  {"arxiv_id": "2404.12399", "score": 3, "reasoning": "Survey, no implementation."}
+]
