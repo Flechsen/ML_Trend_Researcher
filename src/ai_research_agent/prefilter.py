@@ -2,15 +2,21 @@ import math
 from functools import lru_cache
 from typing import Any
 
-from openai import OpenAI
+import tiktoken
+from openai import OpenAI, RateLimitError
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from ai_research_agent.budget import Budget
 from ai_research_agent.models import Paper, ScoredPaper
 
 EMBED_MODEL = "text-embedding-3-small"
-# OpenAI caps each embedding request at 300k tokens. Abstracts run ~250 tokens
-# on average, so 500 per batch leaves comfortable headroom under the cap.
-EMBED_BATCH_SIZE = 500
+# OpenAI free tier caps embeddings at 40k tokens-per-minute. Stay under that
+# per request (so a single batch never trips the limit) and let tenacity
+# absorb the cooldown between batches if we still hit the rolling window.
+EMBED_MAX_TOKENS_PER_INPUT = 400
+EMBED_MAX_TOKENS_PER_BATCH = 30_000
+
+_ENCODING = tiktoken.get_encoding("cl100k_base")
 
 
 @lru_cache(maxsize=1)
@@ -36,6 +42,37 @@ def _interests_to_embedding_text(interests: dict[str, Any]) -> str:
     return "\n".join(c for c in chunks if c)
 
 
+def _truncate(text: str, max_tokens: int) -> tuple[str, int]:
+    tokens = _ENCODING.encode(text)
+    if len(tokens) <= max_tokens:
+        return text, len(tokens)
+    return _ENCODING.decode(tokens[:max_tokens]), max_tokens
+
+
+def _build_token_batches(texts: list[str]) -> list[list[str]]:
+    """Split inputs into batches that stay under EMBED_MAX_TOKENS_PER_BATCH."""
+    batches: list[list[str]] = []
+    current: list[str] = []
+    current_tokens = 0
+    for text in texts:
+        truncated, n_tok = _truncate(text, EMBED_MAX_TOKENS_PER_INPUT)
+        if current and current_tokens + n_tok > EMBED_MAX_TOKENS_PER_BATCH:
+            batches.append(current)
+            current = []
+            current_tokens = 0
+        current.append(truncated)
+        current_tokens += n_tok
+    if current:
+        batches.append(current)
+    return batches
+
+
+@retry(
+    retry=retry_if_exception_type(RateLimitError),
+    stop=stop_after_attempt(6),
+    wait=wait_exponential(multiplier=1, min=20, max=90),
+    reraise=True,
+)
 def _embed_batch(inputs: list[str], budget: Budget | None) -> list[list[float]]:
     resp = _client().embeddings.create(model=EMBED_MODEL, input=inputs)
     if budget is not None:
@@ -56,10 +93,10 @@ def score_by_embedding(
     interest_text = _interests_to_embedding_text(interests)
     interest_vec = _embed_batch([interest_text], budget)[0]
 
+    abstracts = [p.abstract for p in papers]
     paper_vecs: list[list[float]] = []
-    for i in range(0, len(papers), EMBED_BATCH_SIZE):
-        chunk = [p.abstract for p in papers[i:i + EMBED_BATCH_SIZE]]
-        paper_vecs.extend(_embed_batch(chunk, budget))
+    for batch in _build_token_batches(abstracts):
+        paper_vecs.extend(_embed_batch(batch, budget))
 
     scored = [
         ScoredPaper(paper=paper, embedding_score=_cosine(interest_vec, vec))

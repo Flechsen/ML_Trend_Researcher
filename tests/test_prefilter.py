@@ -65,24 +65,43 @@ def test_score_by_embedding_returns_top_n_sorted():
     assert result[1].paper.arxiv_id == "3"  # second
 
 
+def test_build_token_batches_splits_under_cap():
+    """Inputs that together exceed EMBED_MAX_TOKENS_PER_BATCH must split."""
+    from ai_research_agent.prefilter import (
+        EMBED_MAX_TOKENS_PER_BATCH, EMBED_MAX_TOKENS_PER_INPUT, _build_token_batches,
+    )
+
+    # Each input is ~max-per-input tokens; pack enough to force >1 batch
+    big = "word " * (EMBED_MAX_TOKENS_PER_INPUT * 2)
+    inputs_per_batch = max(1, EMBED_MAX_TOKENS_PER_BATCH // EMBED_MAX_TOKENS_PER_INPUT)
+    inputs = [big] * (inputs_per_batch + 5)
+
+    batches = _build_token_batches(inputs)
+    assert len(batches) >= 2
+    assert all(b for b in batches)
+
+
 def test_score_by_embedding_batches_large_input():
-    """Papers > EMBED_BATCH_SIZE must be split into multiple API calls."""
-    from ai_research_agent.prefilter import EMBED_BATCH_SIZE
+    """Many papers must produce multiple API calls (one per token-batch + 1 for interests)."""
+    from ai_research_agent.prefilter import EMBED_MAX_TOKENS_PER_INPUT, EMBED_MAX_TOKENS_PER_BATCH
 
     interests = {"interests": [{"topic": "x", "description": "y", "examples": [], "anti_examples": []}]}
-    papers = [make_paper(str(i), f"abstract {i}") for i in range(EMBED_BATCH_SIZE + 50)]
+    # Long abstracts (~max-per-input tokens each) so batching kicks in.
+    long_abstract = "word " * (EMBED_MAX_TOKENS_PER_INPUT * 2)
+    inputs_per_batch = max(1, EMBED_MAX_TOKENS_PER_BATCH // EMBED_MAX_TOKENS_PER_INPUT)
+    papers = [make_paper(str(i), long_abstract) for i in range(inputs_per_batch + 5)]
 
     interest_resp = MagicMock(
-        data=[MagicMock(embedding=[1.0, 0.0])],
-        usage=MagicMock(prompt_tokens=10),
+        data=[MagicMock(embedding=[1.0, 0.0])], usage=MagicMock(prompt_tokens=10),
     )
+    # Two paper batches: full + remainder
     batch1 = MagicMock(
-        data=[MagicMock(embedding=[1.0, 0.0]) for _ in range(EMBED_BATCH_SIZE)],
-        usage=MagicMock(prompt_tokens=50_000),
+        data=[MagicMock(embedding=[1.0, 0.0]) for _ in range(inputs_per_batch)],
+        usage=MagicMock(prompt_tokens=EMBED_MAX_TOKENS_PER_BATCH),
     )
     batch2 = MagicMock(
-        data=[MagicMock(embedding=[1.0, 0.0]) for _ in range(50)],
-        usage=MagicMock(prompt_tokens=5_000),
+        data=[MagicMock(embedding=[1.0, 0.0]) for _ in range(5)],
+        usage=MagicMock(prompt_tokens=EMBED_MAX_TOKENS_PER_INPUT * 5),
     )
 
     fake_client = MagicMock()
