@@ -85,13 +85,13 @@ def fetch_recent(
     drop any whose arxiv_id is already in `existing_ids`."""
     end = datetime.now(timezone.utc)
     start = end - timedelta(days=days)
-    cat_clause = "+OR+".join(f"cat:{c}" for c in categories)
+    cat_clause = " OR ".join(f"cat:{c}" for c in categories)
     date_clause = (
-        f"lastUpdatedDate:[{start.strftime('%Y%m%d%H%M')}+TO+"
+        f"lastUpdatedDate:[{start.strftime('%Y%m%d%H%M')} TO "
         f"{end.strftime('%Y%m%d%H%M')}]"
     )
     params = {
-        "search_query": f"({cat_clause})+AND+{date_clause}",
+        "search_query": f"({cat_clause}) AND {date_clause}",
         "start": 0,
         "max_results": max_results,
         "sortBy": "submittedDate",
