@@ -1,0 +1,8 @@
+{
+  "why_this_matters": "Because LLMs need tools.",
+  "technical_idea": "ReAct-style tool use with a planner.",
+  "implementation_plan": "1. Pick a base model. 2. Wire tool dispatcher. 3. Eval on benchmark.",
+  "dependencies": "Python, transformers, a small LLM.",
+  "limitations_risks": "Tools may misfire on edge cases.",
+  "next_steps": "Add multi-tool composition."
+}
