@@ -6,9 +6,6 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 
-# uv
-uv.lock
-
 # Local secrets / scratch
 .env
 .env.local
