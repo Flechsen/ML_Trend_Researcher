@@ -82,7 +82,7 @@ def rank_candidates(
     prompt = _build_prompt(scored, interests)
     resp = _client().messages.create(
         model=RANKER_MODEL,
-        max_tokens=2000,
+        max_tokens=4000,
         messages=[{"role": "user", "content": prompt}],
     )
     text = resp.content[0].text
@@ -92,8 +92,13 @@ def rank_candidates(
         in_tok=resp.usage.input_tokens,
         out_tok=resp.usage.output_tokens,
     )
+    if getattr(resp, "stop_reason", None) == "max_tokens":
+        logger.warning("ranker hit max_tokens; JSON likely truncated, parsed=%d", 0)
 
     parsed = _parse_ranking_json(text)
+    if not parsed:
+        logger.warning("ranker returned 0 parseable items; raw response head: %s",
+                       text[:500].replace("\n", " "))
     by_id = {item["arxiv_id"]: item for item in parsed}
 
     ranked: list[RankedCandidate] = []
