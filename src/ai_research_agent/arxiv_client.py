@@ -65,12 +65,12 @@ def _parse_atom(xml_text: str) -> list[Paper]:
 
 @retry(
     retry=retry_if_exception_type((httpx.HTTPError, httpx.TimeoutException)),
-    stop=stop_after_attempt(3),
-    wait=wait_exponential(multiplier=2, min=2, max=30),
+    stop=stop_after_attempt(5),
+    wait=wait_exponential(multiplier=10, min=15, max=120),
     reraise=True,
 )
 def _http_get(url: str, params: dict) -> str:
-    resp = httpx.get(url, params=params, timeout=30.0)
+    resp = httpx.get(url, params=params, timeout=60.0)
     resp.raise_for_status()
     return resp.text
 
