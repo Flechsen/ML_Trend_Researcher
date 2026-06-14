@@ -1,5 +1,7 @@
 # Index
 
+- [Evoflux: Inference-Time Evolution of Executable Tool Workflows for Compact Agents](2026/2606.12674-evoflux-inference-time-evolution-of-executable-tool-workflow.md)
+- [Pushing the Limits of LLM Tool Calling via Experiential Knowledge Integration and Activation](2026/2606.10875-pushing-the-limits-of-llm-tool-calling-via-experiential-know.md)
 - [Memory is Reconstructed, Not Retrieved: Graph Memory for LLM Agents](2026/2606.06036-memory-is-reconstructed-not-retrieved-graph-memory-for-llm-a.md)
 - [Improving the Efficiency of Language Agent Teams with Adaptive Task Graphs](2026/2605.06320-improving-the-efficiency-of-language-agent-teams-with-adapti.md)
 - [Bian Que: An Agentic Framework with Flexible Skill Arrangement for Online System Operations](2026/2604.26805-bian-que-an-agentic-framework-with-flexible-skill-arrangemen.md)
