@@ -1,0 +1,55 @@
+name: Sync research digest to website
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-website
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # ref: master — when called from the weekly run, the digest job has
+      # just pushed new papers; the default github.sha would miss them.
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Export digest
+        run: uv run python scripts/export_website_digest.py --out /tmp/research.yaml
+
+      - name: Push to website repo
+        env:
+          WEBSITE_DEPLOY_KEY: ${{ secrets.WEBSITE_DEPLOY_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$WEBSITE_DEPLOY_KEY" > ~/.ssh/website_deploy
+          chmod 600 ~/.ssh/website_deploy
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/website_deploy -o StrictHostKeyChecking=accept-new"
+          git clone --depth 1 git@github.com:Flechsen/Website.git /tmp/website
+          cp /tmp/research.yaml /tmp/website/data/research.yaml
+          cd /tmp/website
+          if [[ -z "$(git status --porcelain data/research.yaml)" ]]; then
+            echo "Digest unchanged; nothing to push."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/research.yaml
+          git commit -m "chore: update research digest from ML_Trend_Researcher"
+          git push || { git pull --rebase && git push; }
