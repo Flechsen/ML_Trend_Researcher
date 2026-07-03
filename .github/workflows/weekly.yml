@@ -60,3 +60,9 @@ jobs:
           gh issue create \
             --title "Weekly digest hard-crashed: $(date -u +%Y-%m-%d)" \
             --body  "Run did not complete cleanly. See $GH_RUN_URL"
+
+  sync-website:
+    needs: digest
+    if: always()          # papers may have been committed even if the run later failed
+    uses: ./.github/workflows/sync-website.yml
+    secrets: inherit
