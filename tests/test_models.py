@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from ai_research_agent.models import Paper, ScoredPaper, RankedCandidate, RepoBundle
+from ai_research_agent.models import Paper, RankedCandidate, RepoBundle
 
 
 def test_paper_is_frozen():

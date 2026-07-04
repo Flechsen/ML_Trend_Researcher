@@ -16,6 +16,7 @@ from ai_research_agent.prefilter import score_by_embedding
 from ai_research_agent.ranker import rank_candidates
 from ai_research_agent.repo_resolver import resolve as resolve_repo
 from ai_research_agent.synthesizer import synthesize
+from ai_research_agent.trends.report import generate as generate_trends_report
 
 logger = logging.getLogger(__name__)
 
@@ -110,6 +111,25 @@ def _validate_config(interests_path: Path, papers_dir: Path) -> int:
     return 0
 
 
+def _run_trends(
+    interests: dict,
+    budget: Budget,
+    trends_dir: Path,
+    repo: str,
+    run_url: str,
+) -> str:
+    """Run the trends stage fail-soft; the paper digest never depends on this."""
+    try:
+        path = generate_trends_report(interests, budget, trends_dir)
+        logger.info("[trends] wrote %s", path)
+        return f"wrote {path.name}"
+    except Exception as e:
+        logger.warning("[trends] failed: %s", e)
+        if repo and run_url:
+            open_failure_issue(stage="trends", exc=e, run_url=run_url, repo=repo)
+        return "FAILED (issue opened)" if repo and run_url else "FAILED"
+
+
 def run(argv: list[str] | None = None) -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     p = argparse.ArgumentParser()
@@ -118,6 +138,11 @@ def run(argv: list[str] | None = None) -> int:
     p.add_argument("--dry-run", action="store_true",
                    help="Generate .md files but do not git-commit (no-op for git here; the workflow handles commit).")
     p.add_argument("--validate-config", action="store_true")
+    p.add_argument("--trends-dir", default="trends")
+    p.add_argument("--skip-trends", action="store_true",
+                   help="Run the paper pipeline only.")
+    p.add_argument("--trends-only", action="store_true",
+                   help="Skip the paper pipeline; only generate the trends report.")
     args = p.parse_args(argv)
 
     interests_path = Path(args.interests)
@@ -133,6 +158,12 @@ def run(argv: list[str] | None = None) -> int:
     run_url = os.environ.get("GH_RUN_URL", "")
 
     counters = {"fetched": 0, "after_embed": 0, "after_rank": 0, "synthesized": 0}
+
+    if args.trends_only:
+        note = _run_trends(interests, budget, Path(args.trends_dir), repo, run_url)
+        _step_summary("## Weekly Trends — " + datetime.now(timezone.utc).date().isoformat())
+        _step_summary(f"Trends: {note} — spend ${budget.spent:.2f}")
+        return 0 if not note.startswith("FAILED") else 1
 
     try:
         # Stage 1
@@ -191,6 +222,10 @@ def run(argv: list[str] | None = None) -> int:
         _regenerate_index(papers_dir)
         logger.info("[stage 6/6] regenerated INDEX.md")
 
+        trends_note = "skipped (--skip-trends)"
+        if not args.skip_trends:
+            trends_note = _run_trends(interests, budget, Path(args.trends_dir), repo, run_url)
+
         # Job summary
         _step_summary("## Weekly Digest — " + datetime.now(timezone.utc).date().isoformat())
         _step_summary("| Stage | Result |")
@@ -200,6 +235,7 @@ def run(argv: list[str] | None = None) -> int:
         _step_summary(f"| After LLM rank | {counters['after_rank']} |")
         _step_summary(f"| Synthesized & committed | {counters['synthesized']} |")
         _step_summary(f"| Total spend | ${budget.spent:.2f} |")
+        _step_summary(f"| Trends report | {trends_note} |")
         if skipped:
             _step_summary("\n### Skipped\n")
             for aid, reason in skipped:

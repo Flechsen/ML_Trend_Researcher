@@ -1,4 +1,4 @@
-name: Weekly arXiv Digest
+name: Weekly AI Digest
 
 on:
   schedule:
@@ -44,12 +44,12 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if [[ -n "$(git status --porcelain papers/)" ]]; then
-            git add papers/
+          if [[ -n "$(git status --porcelain papers/ trends/)" ]]; then
+            git add papers/ trends/
             git commit -m "weekly digest: $(date -u +%Y-%m-%d)"
             git push
           else
-            echo "No new papers this week."
+            echo "No new papers or trends this week."
           fi
 
       - name: Last-resort failure issue

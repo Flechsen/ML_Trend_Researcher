@@ -1,0 +1,22 @@
+{
+  "total_count": 2,
+  "incomplete_results": false,
+  "items": [
+    {
+      "full_name": "acme/mcp-router",
+      "html_url": "https://github.com/acme/mcp-router",
+      "description": "Route MCP requests across multiple servers",
+      "stargazers_count": 1200,
+      "topics": ["mcp", "llm"],
+      "created_at": "2026-06-25T12:00:00Z"
+    },
+    {
+      "full_name": "acme/agent-skills",
+      "html_url": "https://github.com/acme/agent-skills",
+      "description": null,
+      "stargazers_count": 450,
+      "topics": [],
+      "created_at": "2026-06-28T09:30:00Z"
+    }
+  ]
+}
