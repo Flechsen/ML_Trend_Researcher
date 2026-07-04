@@ -7,7 +7,7 @@ import pytest
 import respx
 
 from ai_research_agent.models import TrendItem
-from ai_research_agent.trends import hackernews
+from ai_research_agent.trends import github_trending, hackernews
 from ai_research_agent.trends._http import get_json, get_text
 from ai_research_agent.trends.config import DEFAULT_CONFIG, load_config
 
@@ -123,3 +123,40 @@ def test_hn_fetch_respects_max_items_cap():
     )
     items = hackernews.fetch(_hn_cfg(max_items_per_source=1))
     assert len(items) == 1
+
+
+def _gh_cfg(**over) -> dict:
+    cfg = dict(DEFAULT_CONFIG)
+    cfg.update({"github_topics": ["mcp"], "github_keywords": ["llm agent"]})
+    cfg.update(over)
+    return cfg
+
+
+@respx.mock
+def test_github_fetch_queries_topics_and_keywords_and_dedups(monkeypatch):
+    monkeypatch.delenv("GH_TOKEN", raising=False)
+    route = respx.get("https://api.github.com/search/repositories").mock(
+        return_value=httpx.Response(
+            200, json=json.loads((FIXTURES / "github_search_response.json").read_text())
+        )
+    )
+    items = github_trending.fetch(_gh_cfg())
+    assert route.call_count == 2  # 1 topic + 1 keyword query
+    assert len(items) == 2  # same repos in both responses -> deduped
+    assert items[0].title == "acme/mcp-router"  # sorted by stars desc
+    assert items[0].score == 1200
+    assert items[0].source == "github"
+    assert "mcp" in items[0].detail  # topics folded into detail
+    assert items[1].detail == ""  # null description handled
+
+
+@respx.mock
+def test_github_fetch_sends_auth_header_when_token_present(monkeypatch):
+    monkeypatch.setenv("GH_TOKEN", "gh-test-token")
+    route = respx.get("https://api.github.com/search/repositories").mock(
+        return_value=httpx.Response(
+            200, json=json.loads((FIXTURES / "github_search_response.json").read_text())
+        )
+    )
+    github_trending.fetch(_gh_cfg(github_keywords=[]))
+    assert route.calls[0].request.headers["authorization"] == "Bearer gh-test-token"
