@@ -1,0 +1,29 @@
+{
+  "nbHits": 3,
+  "hits": [
+    {
+      "objectID": "48769639",
+      "title": "The Safari MCP server for web developers",
+      "url": "https://example.com/safari-mcp",
+      "points": 262,
+      "num_comments": 148,
+      "created_at_i": 1782600000
+    },
+    {
+      "objectID": "48762862",
+      "title": "Launch HN: Manufact (YC S25) - MCP Cloud",
+      "url": null,
+      "points": 108,
+      "num_comments": 60,
+      "created_at_i": 1782500000
+    },
+    {
+      "objectID": "48700001",
+      "title": "Story below the points threshold",
+      "url": "https://example.com/low",
+      "points": 12,
+      "num_comments": 3,
+      "created_at_i": 1782400000
+    }
+  ]
+}

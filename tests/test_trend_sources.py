@@ -1,12 +1,17 @@
+import json
 from datetime import datetime, timezone
+from pathlib import Path
 
 import httpx
 import pytest
 import respx
 
 from ai_research_agent.models import TrendItem
+from ai_research_agent.trends import hackernews
 from ai_research_agent.trends._http import get_json, get_text
 from ai_research_agent.trends.config import DEFAULT_CONFIG, load_config
+
+FIXTURES = Path(__file__).parent / "fixtures"
 
 
 def make_item(**kw) -> TrendItem:
@@ -74,3 +79,47 @@ def test_get_text_returns_body():
         return_value=httpx.Response(200, text="<feed/>")
     )
     assert get_text("https://feeds.example.com/x", params={"t": "week"}) == "<feed/>"
+
+
+def _hn_cfg(**over) -> dict:
+    cfg = dict(DEFAULT_CONFIG)
+    cfg.update({"hn_queries": ["MCP", "LLM"], "min_hn_points": 40})
+    cfg.update(over)
+    return cfg
+
+
+@respx.mock
+def test_hn_fetch_filters_points_and_dedups_across_queries():
+    route = respx.get("https://hn.algolia.com/api/v1/search").mock(
+        return_value=httpx.Response(
+            200, json=json.loads((FIXTURES / "hn_search_response.json").read_text())
+        )
+    )
+    items = hackernews.fetch(_hn_cfg())
+    assert route.call_count == 2  # one call per query
+    assert len(items) == 2  # 12-point story dropped; duplicates collapsed
+    assert items[0].score == 262  # sorted by points desc
+    assert all(i.source == "hackernews" for i in items)
+
+
+@respx.mock
+def test_hn_fetch_falls_back_to_hn_permalink_when_story_has_no_url():
+    respx.get("https://hn.algolia.com/api/v1/search").mock(
+        return_value=httpx.Response(
+            200, json=json.loads((FIXTURES / "hn_search_response.json").read_text())
+        )
+    )
+    items = hackernews.fetch(_hn_cfg(hn_queries=["MCP"]))
+    launch = next(i for i in items if "Manufact" in i.title)
+    assert launch.url == "https://news.ycombinator.com/item?id=48762862"
+
+
+@respx.mock
+def test_hn_fetch_respects_max_items_cap():
+    respx.get("https://hn.algolia.com/api/v1/search").mock(
+        return_value=httpx.Response(
+            200, json=json.loads((FIXTURES / "hn_search_response.json").read_text())
+        )
+    )
+    items = hackernews.fetch(_hn_cfg(max_items_per_source=1))
+    assert len(items) == 1
