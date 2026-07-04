@@ -7,7 +7,7 @@ import pytest
 import respx
 
 from ai_research_agent.models import TrendItem
-from ai_research_agent.trends import github_trending, hackernews, huggingface
+from ai_research_agent.trends import github_trending, hackernews, huggingface, reddit
 from ai_research_agent.trends._http import get_json, get_text
 from ai_research_agent.trends.config import DEFAULT_CONFIG, load_config
 
@@ -210,3 +210,34 @@ def test_hf_fetch_combines_recent_papers_and_trending_models():
     assert models[0].url == "https://huggingface.co/org/model-a"
     assert "3354 likes" in models[0].detail
     assert "unknown task" in models[1].detail  # None pipeline_tag handled
+
+
+@respx.mock
+def test_reddit_fetch_parses_atom_entries():
+    respx.get("https://www.reddit.com/r/LocalLLaMA/top.rss").mock(
+        return_value=httpx.Response(200, text=(FIXTURES / "reddit_top.rss").read_text())
+    )
+    cfg = dict(DEFAULT_CONFIG)
+    cfg["subreddits"] = ["LocalLLaMA"]
+    items = reddit.fetch(cfg)
+    assert len(items) == 2
+    assert items[0].source == "reddit"
+    assert items[0].score is None  # RSS carries no scores
+    assert items[0].url.startswith("https://www.reddit.com/r/LocalLLaMA/comments/")
+    assert items[0].detail == "r/LocalLLaMA weekly top"
+
+
+@respx.mock
+def test_reddit_fetch_survives_one_blocked_subreddit(monkeypatch):
+    monkeypatch.setattr(reddit, "SUB_DELAY_S", 0)  # skip the politeness delay in tests
+    respx.get("https://www.reddit.com/r/LocalLLaMA/top.rss").mock(
+        return_value=httpx.Response(404)
+    )
+    respx.get("https://www.reddit.com/r/MachineLearning/top.rss").mock(
+        return_value=httpx.Response(200, text=(FIXTURES / "reddit_top.rss").read_text())
+    )
+    cfg = dict(DEFAULT_CONFIG)
+    cfg["subreddits"] = ["LocalLLaMA", "MachineLearning"]
+    items = reddit.fetch(cfg)
+    assert len(items) == 2  # MachineLearning entries still returned
+    assert all(i.detail == "r/MachineLearning weekly top" for i in items)

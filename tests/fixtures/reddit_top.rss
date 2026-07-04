@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>top scoring links : LocalLLaMA</title>
+  <entry>
+    <title>New 8B model beats 70B on coding benchmarks</title>
+    <link href="https://www.reddit.com/r/LocalLLaMA/comments/abc123/new_8b_model/"/>
+    <updated>2026-07-01T10:00:00+00:00</updated>
+  </entry>
+  <entry>
+    <title>I built an MCP server for local inference</title>
+    <link href="https://www.reddit.com/r/LocalLLaMA/comments/def456/mcp_server/"/>
+    <updated>2026-06-30T08:00:00+00:00</updated>
+  </entry>
+</feed>
