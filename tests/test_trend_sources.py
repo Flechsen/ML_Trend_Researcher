@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import httpx
@@ -7,7 +7,7 @@ import pytest
 import respx
 
 from ai_research_agent.models import TrendItem
-from ai_research_agent.trends import github_trending, hackernews
+from ai_research_agent.trends import github_trending, hackernews, huggingface
 from ai_research_agent.trends._http import get_json, get_text
 from ai_research_agent.trends.config import DEFAULT_CONFIG, load_config
 
@@ -160,3 +160,53 @@ def test_github_fetch_sends_auth_header_when_token_present(monkeypatch):
     )
     github_trending.fetch(_gh_cfg(github_keywords=[]))
     assert route.calls[0].request.headers["authorization"] == "Bearer gh-test-token"
+
+
+def _hf_papers_payload(now):
+    recent = (now - timedelta(days=2)).isoformat()
+    stale = (now - timedelta(days=30)).isoformat()
+    return [
+        {
+            "title": "AutoMem: Automated Learning of Memory",
+            "publishedAt": recent,
+            "paper": {"id": "2506.11111", "upvotes": 42, "summary": "Memory as a skill."},
+        },
+        {
+            "title": "Old Paper",
+            "publishedAt": stale,
+            "paper": {"id": "2505.00001", "upvotes": 99, "summary": "Too old."},
+        },
+        {
+            "title": "No-id entry (skipped)",
+            "publishedAt": recent,
+            "paper": {"upvotes": 7, "summary": "Missing id."},
+        },
+    ]
+
+
+HF_MODELS_PAYLOAD = [
+    {"id": "org/model-a", "likes": 3354, "trendingScore": 601, "pipeline_tag": "text-generation"},
+    {"id": "org/model-b", "likes": 100, "trendingScore": 305, "pipeline_tag": None},
+]
+
+
+@respx.mock
+def test_hf_fetch_combines_recent_papers_and_trending_models():
+    now = datetime.now(timezone.utc)
+    respx.get("https://huggingface.co/api/daily_papers").mock(
+        return_value=httpx.Response(200, json=_hf_papers_payload(now))
+    )
+    respx.get("https://huggingface.co/api/models").mock(
+        return_value=httpx.Response(200, json=HF_MODELS_PAYLOAD)
+    )
+    items = huggingface.fetch(dict(DEFAULT_CONFIG))
+    papers = [i for i in items if i.source == "hf_papers"]
+    models = [i for i in items if i.source == "hf_models"]
+    assert len(papers) == 1  # stale + no-id entries dropped
+    assert papers[0].url == "https://huggingface.co/papers/2506.11111"
+    assert papers[0].score == 42
+    assert len(models) == 2
+    assert models[0].title == "org/model-a"
+    assert models[0].url == "https://huggingface.co/org/model-a"
+    assert "3354 likes" in models[0].detail
+    assert "unknown task" in models[1].detail  # None pipeline_tag handled
