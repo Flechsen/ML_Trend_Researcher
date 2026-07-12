@@ -1,5 +1,6 @@
 # Index
 
+- [Auto: The AGI Compiler](2026/2607.04542-auto-the-agi-compiler.md)
 - [Semantic Early-Stopping for Iterative LLM Agent Loops](2026/2606.27009-semantic-early-stopping-for-iterative-llm-agent-loops.md)
 - [Agent-as-a-Router: Agentic Model Routing for Coding Tasks](2026/2606.22902-agent-as-a-router-agentic-model-routing-for-coding-tasks.md)
 - [Evoflux: Inference-Time Evolution of Executable Tool Workflows for Compact Agents](2026/2606.12674-evoflux-inference-time-evolution-of-executable-tool-workflow.md)
