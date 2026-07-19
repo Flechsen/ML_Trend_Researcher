@@ -1,5 +1,6 @@
 # Index
 
+- [ToolAtlas: Learning Once, Reusing Everywhere with Tool-Side Memory](2026/2607.11126-toolatlas-learning-once-reusing-everywhere-with-tool-side-me.md)
 - [Auto: The AGI Compiler](2026/2607.04542-auto-the-agi-compiler.md)
 - [Semantic Early-Stopping for Iterative LLM Agent Loops](2026/2606.27009-semantic-early-stopping-for-iterative-llm-agent-loops.md)
 - [Agent-as-a-Router: Agentic Model Routing for Coding Tasks](2026/2606.22902-agent-as-a-router-agentic-model-routing-for-coding-tasks.md)
