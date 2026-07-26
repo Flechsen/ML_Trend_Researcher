@@ -1,5 +1,6 @@
 # Index
 
+- [PRO-LONG: Programmatic Memory Enables Long-Horizon Reasoning](2026/2607.20064-pro-long-programmatic-memory-enables-long-horizon-reasoning.md)
 - [ToolAtlas: Learning Once, Reusing Everywhere with Tool-Side Memory](2026/2607.11126-toolatlas-learning-once-reusing-everywhere-with-tool-side-me.md)
 - [Auto: The AGI Compiler](2026/2607.04542-auto-the-agi-compiler.md)
 - [Semantic Early-Stopping for Iterative LLM Agent Loops](2026/2606.27009-semantic-early-stopping-for-iterative-llm-agent-loops.md)
