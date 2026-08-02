@@ -1,5 +1,6 @@
 # Trends Index
 
+- [ML Trends — Week of 2026-08-02](2026-08-02.md)
 - [ML Trends — Week of 2026-07-26](2026-07-26.md)
 - [ML Trends — Week of 2026-07-19](2026-07-19.md)
 - [ML Trends — Week of 2026-07-12](2026-07-12.md)
