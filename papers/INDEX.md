@@ -1,5 +1,6 @@
 # Index
 
+- [Skill-Use: Can LLMs Actually Use Skills in Agentic Harnesses?](2026/2608.04828-skill-use-can-llms-actually-use-skills-in-agentic-harnesses.md)
 - [PRO-LONG: Programmatic Memory Enables Long-Horizon Reasoning](2026/2607.20064-pro-long-programmatic-memory-enables-long-horizon-reasoning.md)
 - [ToolAtlas: Learning Once, Reusing Everywhere with Tool-Side Memory](2026/2607.11126-toolatlas-learning-once-reusing-everywhere-with-tool-side-me.md)
 - [Auto: The AGI Compiler](2026/2607.04542-auto-the-agi-compiler.md)
